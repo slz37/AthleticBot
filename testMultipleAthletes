@@ -1,0 +1,60 @@
+#!/bin/bash
+
+athleteBase="https://www.athletic.net/CrossCountry/Athlete.aspx?AID="
+schoolBase="https://www.athletic.net/CrossCountry/School.aspx?SchoolID="
+schoolID="10686"
+
+#Output header data to file
+echo -e "Name~ID~Gender~Year~Grade~Distance~Time" >> multipleAthletes.test
+
+#Load current school
+. ./ping "$schoolBase$schoolID"
+
+#Grab athlete ID's and genders
+grep -o -P '(?<="ID":)[\d]+(?=,"Name":"[a-zA-Z '"'"'-]+","Gender")' "index.html" > athleteIDS
+genders=( $(grep -o -P '(?<="Gender":")[\w](?="})' "index.html") )
+ind=0
+
+#Loop over athletes
+while read -r athleteID
+do
+	#Load current athlete
+	.  ./ping "$athleteBase$athleteID"
+
+	name=$(grep -o -P '(?<=og:title" content=").+(?=")' "index.html")
+	gender=${genders[$ind]}
+	
+	#Season and data
+	IFS=$'\n'
+	seasons=( $(grep -o -P '(?<="mb-0">)[\d]+.+(?=\xa0\s)' "index.html") )
+	seasonData=( $(grep -o -P '(?<=>)[\d]+th Grade</span>.+(?=\s)' "index.html") )
+
+	#Loop over seasons
+	for ((i = 0; i < ${#seasonData[@]}; i++))
+	do
+		#Only look at specific season data
+		season=${seasons[$i]}
+		data=${seasonData[$i]}
+		grade=$(echo $data | grep -o -P '[\d]+th Grade')
+
+		#Events and data
+		events=( $(echo $data | grep -o -P '((?<=<h5>)|(?<=<h5 class="bold">))[\w\d .,()-]+(?=<(?:span|\/h5))') )
+		eventData=( $(echo $data | grep -o -P '((?<=<h5>)|(?<="bold">)).+?(?=<\/table)') )
+
+		#Loop over events
+		for ((j = 0; j < ${#eventData[@]}; j++))
+		do
+			tims=( $(echo ${eventData[$j]} | grep -o -P '(([\d]+:)?[\d]+\.[\d]+(?=<))|(\d+'"'"' \d+(?=<))|([\d]+'"'"' [\d]+(\.[\d]+)?)') )
+
+			#Output to file
+			for ((k = 0; k < ${#tims[@]}; k++))
+			do
+				echo -e "$name~$athleteID~$gender~$season~$grade~"`
+				`"${events[$j]}~${tims[$k]}" >> multipleAthletes.test
+			done
+		done
+	done
+
+	#Increase to next person's gender
+	ind=$((ind+1))
+done < athleteIDS

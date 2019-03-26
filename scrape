@@ -1,0 +1,88 @@
+#!/bin/bash
+
+#Starting state
+sport=$1
+age=$2
+state=$3
+section=$4
+location=$5
+baseUrl="https://www.athletic.net"
+
+#Check inputs and get homepage html
+. ./validInput "$@"
+. ./ping "$baseUrl"
+
+#Now get url for next page
+url=$(grep "$sport" "index.html" | grep "$age")
+url=$(echo "$url" | grep -o -P '(?<=href=").+(?=")')
+url="$baseUrl$url$state"
+
+#Now load new page
+. ./ping "$url"
+
+#Focus down to section and then location
+sectionData=$(grep -o -P "${section}<.+?(?=\"Top\")" "index.html")
+locationData=$(echo "$sectionData" | grep -o -P "${location}<.+?(?=</dl>)")
+
+#Write school ID's to temp file and get athlete data from each school
+echo "$locationData" | grep -o -P "(?<=SchoolID=)[\d]+" > schoolIDS
+schoolBase="$baseUrl/$sport/School.aspx?SchoolID="
+athleteBase="$baseUrl/$sport/Athlete.aspx?AID="
+
+#Output header data to file
+echo -e "Name~ID~Gender~Year~Grade~Distance~Time" >> data
+
+#Loop over schools
+while read -r schoolID
+do
+	#Load current school
+	. ./ping "$schoolBase$schoolID"
+
+	#Grab athlete ID's and genders
+	grep -o -P '(?<="ID":)[\d]+(?=,"Name":"[a-zA-Z '"'"'-]+","Gender")' "index.html" > athleteIDS
+	genders=( $(grep -o -P '(?<="Gender":")[\w](?="})' "index.html") )
+	ind=0
+
+	#Loop over athletes
+	while read -r athleteID
+	do
+		#Load current athlete
+		.  ./ping "$athleteBase$athleteID"
+		name=$(cat "index.html" | grep -o -P '(?<=og:title" content=").+(?=")')
+		gender=${genders[$ind]}
+
+		#Season and data
+		IFS=$'\n'
+		seasons=( $(grep -o -P '(?<="mb-0">)[\d]+.+(?=\xa0\s)' "index.html") )
+		seasonData=( $(grep -o -P '(?<=>)[\d]+th Grade</span>.+(?=\s)' "index.html") )
+
+		#Loop over seasons
+		for ((i = 0; i < ${#seasonData[@]}; i++))
+		do
+			#Only look at specific season data
+			season=${seasons[$i]}
+			data=${seasonData[$i]}
+			grade=$(echo $data | grep -o -P '[\d]+th Grade')
+
+			#Events and data
+			events=( $(echo $data | grep -o -P '((?<=<h5>)|(?<=<h5 class="bold">))[\w\d .,()-]+(?=<(?:span|\/h5))') )
+			eventData=( $(echo $data | grep -o -P '((?<=<h5>)|(?<="bold">)).+?(?=<\/table)') )
+
+			#Loop over events
+			for ((j = 0; j < ${#eventData[@]}; j++))
+			do
+				tims=( $(echo ${eventData[$j]} | grep -o -P '(([\d]+:)?[\d]+\.[\d]+(?=<))|(\d+'"'"' \d+(?=<))|([\d]+'"'"' [\d]+(\.[\d]+)?)') )
+
+				#Output to file
+				for ((k = 0; k < ${#tims[@]}; k++))
+				do
+					echo -e "$name~$athleteID~$gender~$season~$grade~"`
+					`"${events[$j]}~${tims[$k]}" >> data
+				done
+			done
+		done
+
+		#Increase to next person's gender
+		ind=$((ind+1))
+	done < athleteIDS
+done < schoolIDS

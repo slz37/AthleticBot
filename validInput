@@ -1,0 +1,32 @@
+#!/bin/bash
+
+#Checks the inputs for validity, separated to remove clutter in main script
+
+#Inputs to check
+sport=$1
+age=$2
+state=$3
+section=$4
+location=$5
+
+#Check for valid inputs
+if [ "$#" -ne 5 ]
+then
+	echo "Invalid number of arguments, should be: sport age state section location"
+	exit 1
+fi
+if ! grep "$state" statelist > /dev/null
+then
+	echo "Invalid state, make sure you enter the full name with no spaces, e.g. NewJersey"
+	exit 1
+fi
+if [ ! "$sport" = "TrackAndField" ] && [ ! "$sport" = "CrossCountry" ]
+then
+	echo 'Invalid sport, please choose "TrackAndField" or "CrossCountry"'
+	exit 1
+fi
+if [ ! "$age" = "High School" ] && [ ! "$age" = "Middle School" ]
+then
+	echo 'Invalid age, please choose "High School" or "Middle School"'
+	exit 1
+fi

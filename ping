@@ -1,0 +1,16 @@
+#!/bin/bash
+
+#Check if page is up and grab the page html if so
+url=$1
+stat=$(curl -Is $url | head -1 | cut -d " " -f2)
+
+#Check if we can reach page, follow redirects, so that's fine too
+if [ "$stat" = "200" ] || [ "$stat" = "301" ]
+then
+	#Remove previous page html and create new file
+	rm -f index.html > /dev/null
+	curl -L "$url" -s -o index.html > /dev/null
+else
+	echo "Unable to connect to $url, check your internet connect and site availability."
+	exit 1
+fi

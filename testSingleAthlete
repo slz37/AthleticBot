@@ -1,0 +1,45 @@
+#!/bin/bash
+
+athleteBase="https://www.athletic.net/TrackAndField/Athlete.aspx?AID="
+
+#Output header data to file
+echo -e "Name~ID~Gender~Year~Grade~Distance~Time" >> singleAthlete.test
+
+#Hand picked, normally found in loop
+athleteID="9625179"
+gender="M"
+
+#Load current athlete
+.  ./ping "$athleteBase$athleteID"
+name=$(grep -o -P '(?<=og:title" content=").+(?=")' "index.html")
+
+#Season and data
+IFS=$'\n'
+seasons=( $(grep -o -P '(?<="mb-0">)[\d]+.+(?=\xa0\s)' "index.html") )
+seasonData=( $(grep -o -P '(?<=>)[\d]+th Grade</span>.+(?=\s)' "index.html") )
+
+#Loop over seasons
+for ((i = 0; i < ${#seasonData[@]}; i++))
+do
+	#Only look at specific season data
+        season=${seasons[$i]}
+        data=${seasonData[$i]}
+        grade=$(echo $data | grep -o -P '[\d]+th Grade')
+	
+	#Events and data
+	events=( $(echo $data | grep -o -P '((?<=<h5>)|(?<=<h5 class="bold">))[\w\d .,()-]+(?=<(?:span|\/h5))') )
+	eventData=( $(echo $data | grep -o -P '((?<=<h5>)|(?<="bold">)).+?(?=<\/table)') )
+
+	#Loop over events
+	for ((j = 0; j < ${#eventData[@]}; j++))
+	do
+		tims=( $(echo ${eventData[$j]} | grep -o -P '(([\d]+:)?[\d]+\.[\d]+(?=<))|(\d+'"'"' \d+(?=<))|([\d]+'"'"' [\d]+(\.[\d]+)?)') )
+
+        	#Output to file
+        	for ((k = 0; k < ${#tims[@]}; k++))
+        	do
+        		echo -e "$name~$athleteID~$gender~$season~$grade~"`
+			`"${events[$j]}~${tims[$k]}" >> singleAthlete.test
+		done
+	done
+done

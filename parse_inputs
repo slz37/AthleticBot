@@ -1,0 +1,77 @@
+#!/usr/bin/env python
+
+from data_calculations import *
+
+def parse_inputs(data, year, event, gender, calculate):
+    '''
+    Takes in the data and user inputs and
+    parses them to output the requested
+    data.
+    '''
+
+    #Convert to seconds
+    data = convert_to_base_units(data)
+
+    #Unique dates and events
+    unique_dates = data["Year"].unique()
+    unique_events = data["Distance"].unique()
+    
+    #Break if something isn't right
+    if (year not in unique_dates) and (year != "all"):
+        print("Invalid year")
+        sys.exit()
+    if (event not in unique_events) and (event != "all"):
+        print("Invalid event")
+        sys.exit()
+    if (gender != "all") and (gender != "M") and (gender != "F"):
+        print("Invalid gender")
+        sys.exit()
+    if (calculate != "all") and (calculate != "top") and (calculate != "avg"):
+        print("Invalid function")
+        sys.exit()
+
+    #Set iter lists
+    if year == "all":
+        year_iter = unique_dates
+    else:
+        year_iter = [year]
+    if  event == "all":
+        event_iter = unique_events
+    else:
+        event_iter = [event]
+    if gender == "all":
+        gender_iter = ["M", "F"]
+    else:
+        gender_iter = [gender]
+    if calculate == "all":
+        calculate_iter = [calculate_top, calculate_avg]
+    elif calculate == "top":
+        calculate_iter = [calculate_top]
+    else:
+        calculate_iter = [calculate_avg]
+
+    #Run calculations now
+    for yr in year_iter:
+        for ev in event_iter:
+            for gen in gender_iter:
+                for cal in calculate_iter:
+                    cal(data, yr, ev, gen)
+
+if __name__ == "__main__":
+    #Read arguments 
+    if len(sys.argv) == 6:
+        #Try to read file
+        try:
+            data = pd.read_csv(sys.argv[1], header = 0, sep = "~") 
+        except:
+            print("Invalid file")
+            sys.exit()
+        year = sys.argv[2]
+        event = sys.argv[3]
+        gender = sys.argv[4]
+        calculate = sys.argv[5]
+    else:
+        print("Invalid number of arguments")
+        sys.exit()
+        
+    parse_inputs(data, year, event, gender, calculate)
