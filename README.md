@@ -1,8 +1,7 @@
-Salvatore Zerbo
-CS 265 Final Project
-Winter 2019
-Team Repository: https://gitlab.cci.drexel.edu/slz37/cs265-final-project
+## Post-Project Update:
+Final project for my CS 265 class. Originally meant as a learning experience for web scraping and the initial stages of a project to study machine learning through predicting athlete's future times based on past results. Unfortunately, as I worked on this project, I was unfamiliar with scraping etiquette and the standard robots.txt. I believe that athletic.net does not allow scraping as stated in their robots.txt, so this project ends here. I'm adding it as a reminder to follow common courtesy and to not forget the work I put into it.
 
+## Original Project README:
 This program scrapes https://www.athletic.net for information on athletes
 depending on the sport, age, state, district, and location. It then calculates
 various top 5 lists and averages depending on user input. The main difficulties 
